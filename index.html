@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#bfe0f4">
+  <title>空中之島｜方塊探索</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./vendor/three.min.js"></script>
+  <script src="./game-systems.js"></script>
+  <script defer src="./game.js"></script>
+</head>
+<body>
+  <main id="game" aria-label="空中之島 3D 方塊遊戲">
+    <canvas id="world"></canvas>
+    <div class="grain" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">✦</span><div><strong>空中之島</strong><small>SKY ISLAND · 方塊探索</small></div></div>
+      <div class="top-actions">
+        <button id="weatherButton" class="pill weather-button" type="button"><span class="weather-icon">☀</span><span>晴朗</span><kbd>R</kbd></button>
+        <button id="fullscreenButton" class="icon-button" type="button" aria-label="切換全螢幕" title="全螢幕">⛶</button>
+        <button id="helpButton" class="icon-button" type="button" aria-label="顯示操作說明" title="操作說明">?</button>
+      </div>
+    </header>
+
+    <section class="world-card" aria-live="polite">
+      <span class="world-dot"></span><div><strong>浮空群島</strong><small id="worldStatus">晴朗 · 固定世界（32 格內）</small></div>
+    </section>
+    <aside id="energyCard" class="energy-card" aria-live="polite" aria-label="玩家能量">
+      <span>能量</span><strong id="energyValue" aria-label="能量 5 / 5">♥♥♥♥♥</strong>
+    </aside>
+    <aside id="questCard" class="quest-card" aria-live="polite">
+      <div class="quest-heading"><span>島民小任務</span><span>✦</span></div>
+      <div class="quest-row"><span>收集方塊</span><strong id="collectProgress">0 / 10</strong></div>
+      <div class="quest-row"><span>種下小花</span><strong id="flowerProgress">0 / 3</strong></div>
+      <div id="badgeLine" class="badge-line">完成任務，拿到小徽章</div>
+    </aside>
+
+    <div id="crosshair" class="crosshair" aria-hidden="true"><i></i><b></b></div>
+    <div id="targetLabel" class="target-label" aria-live="polite"></div>
+    <div id="toast" class="toast" role="status"></div>
+    <div id="lightningFlash" class="lightning-flash" aria-hidden="true"></div>
+    <div id="rainTint" class="rain-tint" aria-hidden="true"></div>
+    <div id="rainbowOverlay" class="rainbow-overlay" aria-hidden="true">
+      <svg viewBox="0 0 1000 300" role="presentation">
+        <defs><linearGradient id="rainbowSpectrum" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0%" stop-color="#e94c4c"/><stop offset="18%" stop-color="#f39a3c"/>
+          <stop offset="36%" stop-color="#f1db55"/><stop offset="54%" stop-color="#6abf69"/>
+          <stop offset="72%" stop-color="#4a9fe8"/><stop offset="88%" stop-color="#6756c9"/>
+          <stop offset="100%" stop-color="#b15dc7"/>
+        </linearGradient></defs>
+        <path d="M 35 285 Q 500 -150 965 285" fill="none" stroke="url(#rainbowSpectrum)" stroke-width="25" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <div class="bottom-ui">
+      <div class="control-hint"><span class="key-group"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span>移動</span><span class="hint-divider"></span><kbd>空白</kbd><span>跳躍</span><span class="hint-divider"></span><span class="mouse-hint">左鍵挖掘</span><span class="hint-divider"></span><span class="mouse-hint">右鍵放置</span></div>
+      <nav id="hotbar" class="hotbar" aria-label="物品欄"></nav>
+      <div class="bottom-note"><span>✦</span> 漫步、收集，慢慢打造你的島</div>
+    </div>
+
+    <section id="startPanel" class="panel-backdrop">
+      <div class="start-panel">
+        <div class="panel-kicker"><span>WEEK 7</span><span>·</span><span>方塊世界練習</span></div>
+        <h1>空中之島<span>。</span></h1>
+        <p>在雲端上的小島挖掘、收集方塊，<br>再親手布置一座自己的天地。</p>
+        <div class="start-stats"><span><b>01</b> 探索島嶼</span><span><b>02</b> 收集方塊</span><span><b>03</b> 種下小花</span></div>
+        <section class="start-guide" aria-label="開始前使用指南">
+          <strong class="start-guide-title">開始前使用指南</strong>
+          <p><b>移動／跳躍</b><span>W A S D 移動，空白鍵跳躍</span></p>
+          <p><b>收集方塊</b><span>對準方塊按住左鍵挖掉，再走近掉落的小方塊自動撿起</span></p>
+          <p><b>放置方塊</b><span>按 1–6 選物品，對準位置按右鍵放置</span></p>
+          <p><b>天氣／能量</b><span>每 30 秒自動下雨 15 秒；雨滴和掉落都會消耗能量，躲在屋簷下可避雨</span></p>
+        </section>
+        <button id="startButton" class="start-button" type="button">進入島嶼 <span>→</span></button>
+        <small class="panel-footnote">建議使用鍵盤與滑鼠遊玩</small>
+      </div>
+    </section>
+
+    <section id="helpPanel" class="panel-backdrop hidden">
+      <div class="help-panel">
+        <button id="closeHelpButton" class="close-button" type="button" aria-label="關閉">×</button>
+        <div class="panel-kicker">操作指南</div><h2>慢慢探索這座島</h2>
+        <div class="help-grid">
+          <div><kbd>W A S D</kbd><span>移動</span></div><div><kbd>空白鍵</kbd><span>跳躍</span></div>
+          <div><kbd>滑鼠</kbd><span>轉動視角</span></div><div><kbd>左鍵</kbd><span>按住挖掘</span></div>
+          <div><kbd>右鍵</kbd><span>放置方塊／種花</span></div><div><kbd>R</kbd><span>切換下雨</span></div>
+          <div><kbd>1–6</kbd><span>選擇物品</span></div><div><kbd>Esc</kbd><span>暫停／離開視角</span></div>
+        </div>
+        <p class="help-note">靠近掉落方塊就會自動撿起。選擇花朵後，對著草地按右鍵種花；花在雨中長高會恢復 1 格能量。能量從 5 格開始；被雨滴到或掉出島嶼會減少 1 格，躲在屋簷下可避雨；歸零後可重新開始。</p>
+        <button id="resumeButton" class="start-button secondary-button" type="button">回到遊戲 <span>→</span></button>
+      </div>
+    </section>
+    <section id="deathPanel" class="panel-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="deathTitle">
+      <div class="start-panel death-panel">
+        <div class="panel-kicker">旅程暫停</div>
+        <h2 id="deathTitle">能量用完了</h2>
+        <p>重新開始後會回到島上，能量恢復為 5 格。</p>
+        <button id="restartButton" class="start-button" type="button">重新開始 <span>→</span></button>
+      </div>
+    </section>
+    <div id="pauseHint" class="pause-hint hidden">點一下畫面繼續遊玩 <span>ESC 可暫停</span></div>
+  </main>
+</body>
+</html>
